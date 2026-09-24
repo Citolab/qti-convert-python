@@ -15,7 +15,7 @@ package. It gives the same results and is tested against the same fixtures.
 ## Installation
 
 ```bash
-pip install qti-convert
+pip install citolab-qti-convert
 ```
 
 Requires Python 3.9 or newer.
