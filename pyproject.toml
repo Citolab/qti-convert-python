@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qti-convert"
+dynamic = ["version"]
+description = "Convert QTI 2.x to QTI 3.0 and QTI 3.0 to QTI 2.1: items, tests, stimuli and content packages"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "Marcel Hoekstra" }]
+maintainers = [{ name = "Citolab" }]
+keywords = ["qti", "qti3", "qti2", "ims", "1edtech", "assessment", "e-assessment", "converter"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Education :: Testing",
+  "Topic :: Text Processing :: Markup :: XML",
+  "Typing :: Typed",
+]
+dependencies = ["lxml>=4.9"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.5", "build>=1.0", "twine>=5", "types-lxml"]
+
+[project.urls]
+Homepage = "https://github.com/Citolab/qti-convert-python"
+Repository = "https://github.com/Citolab/qti-convert-python"
+Issues = "https://github.com/Citolab/qti-convert-python/issues"
+"TypeScript version" = "https://github.com/Citolab/qti-convert"
+
+[project.scripts]
+qti-convert = "qti_convert.cli:main"
+
+[tool.hatch.version]
+path = "src/qti_convert/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qti_convert"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/qti_convert", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["UP006", "UP007", "UP035", "UP045"]
+
+[tool.ruff.lint.per-file-ignores]
+# XML fixtures are easier to read on one line
+"tests/*" = ["E501"]
