@@ -14,6 +14,13 @@ Content packages (zip, folder or a dict of files)::
 
     upgrade_package("qti2.zip", "qti3.zip")
     warnings = downgrade_package("qti3.zip", "qti21.zip").warnings
+
+Broken file references in a package (QTI 2.x or 3), e.g. package-root-relative image paths::
+
+    from qti_convert import fix_package_references
+
+    result = fix_package_references("package.zip", "package-fixed.zip")
+    result.fixed, result.unresolved
 """
 
 from .downgrade import Qti21ConversionResult, Qti21Warning, convert_qti3_to_qti21
@@ -33,17 +40,33 @@ from .package import (
     upgrade_package_files,
     write_package,
 )
+from .references import (
+    REFERENCE_ATTRIBUTES,
+    FixedReference,
+    PackageReferenceResolver,
+    ReferenceFixResult,
+    ReferenceResolution,
+    UnresolvedReference,
+    fix_package_references,
+    fix_package_references_files,
+)
 from .shared_stimuli import ExtractedStimulus, NearDuplicateContent, SharedStimuliReport, extract_shared_stimuli
 from .stylesheet import QTI3_SHARED_VOCABULARY_CSS, QTI3_SHARED_VOCABULARY_CSS_PATH
 from .transforms import DEFAULT_ITEM_TRANSFORMS, apply_transforms
 from .upgrade import upgrade_qti2_to_qti3
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "DEFAULT_ITEM_TRANSFORMS",
     "QTI3_SHARED_VOCABULARY_CSS",
     "QTI3_SHARED_VOCABULARY_CSS_PATH",
+    "REFERENCE_ATTRIBUTES",
+    "FixedReference",
+    "PackageReferenceResolver",
+    "ReferenceFixResult",
+    "ReferenceResolution",
+    "UnresolvedReference",
     "ExtractedStimulus",
     "NearDuplicateContent",
     "Qti21ConversionResult",
@@ -60,6 +83,8 @@ __all__ = [
     "downgrade_package",
     "downgrade_package_files",
     "extract_shared_stimuli",
+    "fix_package_references",
+    "fix_package_references_files",
     "package_to_zip",
     "read_package",
     "upgrade_item",

@@ -4,6 +4,7 @@ Convert [QTI](https://www.1edtech.org/standards/qti) content between versions, i
 
 - **upgrade**: QTI 2.x (2.0, 2.1, 2.2) → QTI 3.0
 - **downgrade**: QTI 3.0 → QTI 2.1
+- **fix-references**: repair broken file references (images, stylesheets, templates, ...) in a QTI 2.x or 3 package
 
 It converts single items, tests and stimuli as well as whole content packages (`imsmanifest.xml` with its items,
 tests, stimuli and assets; as a `.zip`, a folder or a dict of files). It depends only on [lxml](https://lxml.de) and
@@ -31,10 +32,13 @@ qti-convert upgrade ./qti2-folder ./qti3-folder --extract-shared-stimuli
 # QTI 3.0 -> QTI 2.1 (warnings are printed to stderr)
 qti-convert downgrade package-qti3.zip package-qti21.zip
 qti-convert downgrade item-qti3.xml item-qti21.xml
+
+# repair broken file references (what was fixed and what wasn't found is printed to stderr)
+qti-convert fix-references package.zip package-fixed.zip
 ```
 
-`INPUT` and `OUTPUT` can each be an XML file, a `.zip`, or a folder. Run `qti-convert upgrade --help` or
-`qti-convert downgrade --help` for all options.
+`INPUT` and `OUTPUT` can each be an XML file, a `.zip`, or a folder (`fix-references` takes a `.zip` or a
+folder). Run `qti-convert <command> --help` for all options.
 
 ## Python API
 
@@ -99,6 +103,56 @@ The package **downgrade**:
 - adds `qti3-shared-vocabulary.css` next to the manifest and links it from the items that use `qti-*` classes
   (switch this off with `inject_shared_vocabulary_stylesheet=False`)
 - accepts `convert_item`, `convert_test` and `convert_manifest` callbacks to override the default conversions
+
+### Fixing file references
+
+Some exports write references that don't resolve: `src="mediafiles/a.png"` in `questions/q1.xml`, which is relative to
+the package root instead of to the item, `templateLocation="/templates/rp.xml"`, or a path on the author's computer.
+`fix_package_references` repairs them. It is a separate step: run it before or after a conversion, on QTI 2.x or
+QTI 3 packages.
+
+```python
+from qti_convert import fix_package_references
+
+result = fix_package_references("package.zip", "package-fixed.zip")   # or fix_package_references_files(files)
+for fixed in result.fixed:
+    print(fixed.file, fixed.value, "->", fixed.new_value, f"({fixed.method})")
+for unresolved in result.unresolved:
+    print(unresolved.file, unresolved.value, unresolved.candidates)
+```
+
+Every reference in the items, tests and stimuli (`src`, `href`, `data`, `poster`, `template-location`,
+`primary-path`, ... see `REFERENCE_ATTRIBUTES`) is resolved in this order:
+
+1. relative to its own file, as the specs require. A reference that only differs in case is corrected (`case`).
+2. relative to the package root, the folder of `imsmanifest.xml`. This also covers paths that start with `/`
+   (`package-root`).
+3. by file name anywhere in the package (`file-name`). When several files have that name, the one whose folders
+   match the reference best wins; if that's still a tie, the reference is reported with the candidates. Switch this
+   step off with `search_by_file_name=False`.
+
+A reference found in step 2 or 3 is rewritten relative to its own file (`../mediafiles/a.png`); query strings,
+fragments and URL encoding are kept. Only the attribute values change, so the rest of each file stays byte-for-byte
+the same, and running it again changes nothing. External URLs are left alone. References that aren't found are
+left as they are and reported in `result.unresolved`.
+
+To resolve references while reading a package file by file, without loading it whole, use
+`PackageReferenceResolver`. It needs only the paths of the files in the package, and gives the same results:
+
+```python
+import zipfile
+from qti_convert import PackageReferenceResolver
+
+with zipfile.ZipFile("package.zip") as archive:
+    resolver = PackageReferenceResolver(archive.namelist())   # root_dir defaults to the folder of imsmanifest.xml
+    resolution = resolver.resolve("questions/q1.xml", "mediafiles/a.png", "src")
+    resolution.target      # "mediafiles/a.png": the package path to read, or None when nothing was found
+    resolution.new_value   # "../mediafiles/a.png": the value to write, or None when it was already right
+    resolution.method      # "", "case", "package-root" or "file-name"
+```
+
+`resolve` returns None for values that aren't a file in the package (URLs, `data:` URIs, fragments). A target is
+always one of the given paths, so a reference can never point outside the package.
 
 ## What the downgrade changes
 

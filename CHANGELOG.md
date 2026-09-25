@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- `fix_package_references` / `fix_package_references_files`: repair broken file references in QTI 2.x and 3
+  packages. Each reference is resolved relative to its file, then relative to the package root (also for paths
+  starting with `/`), then by file name; references found the second or third way are rewritten relative to their
+  file, and only those attribute values change. Also `qti-convert fix-references INPUT OUTPUT`.
+- `PackageReferenceResolver`: the same resolving, for code that reads a package file by file. It needs only the file
+  paths of the package (e.g. `zipfile.ZipFile.namelist()`), not their contents.
+
 ## 0.1.0
 
 First release: a Python port of the QTI 2 ↔ 3 conversions of [@citolab/qti-convert](https://github.com/Citolab/qti-convert) 0.7.1.

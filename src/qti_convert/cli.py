@@ -10,6 +10,7 @@ from typing import List, Optional, Sequence
 from . import __version__
 from .downgrade import Qti21Warning, convert_qti3_to_qti21
 from .package import downgrade_package, root_local_name, upgrade_item, upgrade_package
+from .references import fix_package_references
 from .upgrade import upgrade_qti2_to_qti3
 
 
@@ -68,10 +69,25 @@ def _downgrade(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fix_references(args: argparse.Namespace) -> int:
+    result = fix_package_references(
+        Path(args.input), Path(args.output), search_by_file_name=not args.no_file_name_search
+    )
+    if not args.quiet:
+        for fixed in result.fixed:
+            print(f"fixed [{fixed.method}] {fixed.file}: {fixed.value} -> {fixed.new_value}", file=sys.stderr)
+        for unresolved in result.unresolved:
+            candidates = f" (candidates: {', '.join(unresolved.candidates)})" if unresolved.candidates else ""
+            print(f"not found {unresolved.file}: {unresolved.value}{candidates}", file=sys.stderr)
+        print(f"{len(result.fixed)} reference(s) fixed, {len(result.unresolved)} not found", file=sys.stderr)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="qti-convert",
-        description="Convert QTI 2.x to QTI 3.0 (upgrade) and QTI 3.0 to QTI 2.1 (downgrade). "
+        description="Convert QTI 2.x to QTI 3.0 (upgrade) and QTI 3.0 to QTI 2.1 (downgrade), or repair the file "
+        "references of a package (fix-references). "
         "INPUT and OUTPUT are a single XML file, a package .zip or a package folder.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -101,6 +117,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     downgrade.add_argument("-q", "--quiet", action="store_true", help="do not print warnings")
     downgrade.set_defaults(run=_downgrade)
+
+    fix = commands.add_parser(
+        "fix-references",
+        help="repair broken file references (images, stylesheets, ...) in a QTI 2.x or 3 package",
+        description="Resolves every reference relative to its file, then relative to the package root, then by "
+        "file name, and rewrites the ones that only resolve the second or third way.",
+    )
+    fix.add_argument("input", help="package .zip or package folder")
+    fix.add_argument("output", help="output .zip or folder")
+    fix.add_argument("--no-file-name-search", action="store_true", help="do not look for files by name")
+    fix.add_argument("-q", "--quiet", action="store_true", help="do not print what was fixed")
+    fix.set_defaults(run=_fix_references)
     return parser
 
 
